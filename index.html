@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Hand flower Detector</title>
+
+    <style>
+        body {
+            margin: 0;
+            background: #222;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw !important;
+            height: 100vh !important;
+            object-fit: contain !important;
+            background: #222 !important;
+            display: block !important;
+            transform: scaleX(-1);
+            z-index: 0 !important;
+        }
+        
+        /* Loading GIF Container (flowers_rotating_grey.gif) */
+        #loadingContainer {
+            position: fixed;
+            top: 70%; 
+            left: 50%;
+            transform: translate(-50%, -50%); 
+            width: 40vw; 
+            height: 40vh; 
+            z-index: 20;
+            display: none;
+            pointer-events: none;
+            transition: opacity 0.5s ease-in-out; 
+            opacity: 0; 
+        }
+
+        #loadingContainer img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* Effect GIF Container (effect.gif) - One-time pop */
+        #effectGifContainer {
+            position: fixed;
+            top: 80%; 
+            left: 50%; 
+            transform: translate(-50%, -50%) scale(0.5); 
+            /* UPDATED SIZE for Effect 1 to be consistent with Effect 2/Flower */
+            width: 30vw; 
+            height: 30vh; 
+            z-index: 29; 
+            display: none;
+            pointer-events: none;
+            opacity: 0; 
+            transition: opacity 0.2s ease-out; 
+        }
+
+        #effectGifContainer img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        /* Effect 2 GIF Container (effect_2.gif) - Continuous */
+        #effect2GifContainer {
+            position: fixed;
+            top: 80%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            /* UPDATED SIZE */
+            width: 30vw; 
+            height: 30vh; 
+            z-index: 31; 
+            display: none;
+            pointer-events: none;
+        }
+
+        #effect2GifContainer img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+
+        #flower {
+            position: fixed;
+            top: 80%;
+            left: 50%;
+            /* RESTORED original CSS for size based on your instruction */
+            font-size: 20vw;
+            transform: translate(-50%, -50%);
+            transition: color 0.3s;
+            pointer-events: none;
+            user-select: none;
+            /* Z-INDEX 31 */
+            z-index: 30; 
+            display: none;
+        }
+        
+        /* Keyframes */
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.20); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+        
+        #flower.pulse {
+            animation: pulse 2s infinite ease-in-out;
+        }
+        
+        /* One-time pop-up effect for the effect GIF */
+        #effectGifContainer.pop {
+             animation: pop-once 0.5s ease-out forwards;
+        }
+
+        @keyframes pop-once {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0;}
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1;}
+        }
+
+        @keyframes swing {
+            0% { transform: translate(-50%, -50%) rotate(3deg); }
+            50% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(3deg); }
+        }
+        
+        #meaningBanner {
+            position: fixed;
+            top: 69.3%;
+            left: 74.3%;
+            width: 30vw;
+            height: 30vw;
+            transform: translate(-50%, -50%);
+            transform-origin: top center;
+            pointer-events: none;
+            user-select: none;
+            z-index: 25;
+            display: none;
+            animation: swing 2s infinite ease-in-out;
+        }
+        
+        #raiseHandBanner {
+            position: fixed;
+            top: 69.3%;
+            left: 74.3%;
+            width: 30vw;
+            height: 30vw;
+            transform: translate(-50%, -50%);
+            transform-origin: top center;
+            pointer-events: none;
+            user-select: none;
+            z-index: 10;
+            display: none;
+            animation: swing 2s infinite ease-in-out;
+        }
+        
+        #carousel {
+            position: fixed;
+            top: 10%;
+            right: 0;
+            width: 100px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            overflow-y: auto;
+            z-index: 30;
+            background: rgba(34, 34, 34, 0.7);
+            border-radius: 10px 0 0 10px;
+            padding: 10px 5px;
+        }
+        
+        #carousel img {
+            width: 80px;
+            height: 60px;
+            object-fit: cover;
+            border: 2px solid #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: border 0.2s;
+        }
+        
+        #carousel img:hover {
+            border: 2px solid #ff4081;
+        }
+        
+        #background-img {
+            z-index: 2 !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <video id="video" width="640" height="480" autoplay></video>
+    
+    <div id="loadingContainer">
+        <img src="flowers/flowers_rotating_grey.gif" alt="Loading...">
+    </div>
+
+    <div id="effectGifContainer">
+        <img src="flowers/effect.gif" alt="Effect">
+    </div>
+    
+    <div id="effect2GifContainer">
+        <img src="flowers/effect_2.gif" alt="Continuous Effect">
+    </div>
+
+
+    <div id="flower"></div>
+    <div id="meaningBanner"></div>
+    <div id="raiseHandBanner"></div>
+
+    <div id="carousel"></div>
+
+    <a id="downloadLink" style="display:none"></a>
+    <canvas id="captureCanvas" style="display:none"></canvas>
+
+    <script>
+        const oldBg = document.getElementById('background-img');
+        if (oldBg) oldBg.remove();
+
+        const bgImg = document.createElement('img');
+        bgImg.src = 'background.png';
+        bgImg.alt = 'Background';
+        bgImg.id = 'background-img';
+
+        Object.assign(bgImg.style, {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            height: '100vh',
+            width: 'auto',
+            minWidth: '100vw',
+            zIndex: 2,
+            objectFit: 'contain',
+            objectPosition: 'center',
+            pointerEvents: 'none',
+            userSelect: 'none'
+        });
+
+        document.body.appendChild(bgImg);
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/handtrackjs@latest/dist/handtrack.min.js"></script>
+
+    <script>
+        let model = null;
+
+        const video = document.getElementById('video');
+        const flower = document.getElementById('flower');
+        const raiseHandBanner = document.getElementById('raiseHandBanner');
+        const loadingContainer = document.getElementById('loadingContainer');
+        const effectGifContainer = document.getElementById('effectGifContainer'); 
+        const effect2GifContainer = document.getElementById('effect2GifContainer'); 
+        const meaningBanner = document.getElementById('meaningBanner');
+
+        function updateRaiseHandBanner(handPresent) {
+            if (!handPresent && !flowerVisible && !loadingVisible) {
+                raiseHandBanner.innerHTML =
+                    `<img src="flowers/raise_hand.png"
+                style="position:absolute;left:75%;top:50%;
+                transform:translate(-50%, -50%);
+                width:30vw;height:30vw;object-fit:contain;"
+                alt="Raise Hand">`;
+
+                raiseHandBanner.style.display = 'block';
+            } else {
+                raiseHandBanner.style.display = 'none';
+            }
+        }
+
+        const flowerList = [
+            'flowers/rose.png',
+            'flowers/tulip.png',
+            'flowers/daisy.png',
+            'flowers/sunflower.png',
+            'flowers/lily.png'
+        ];
+
+        let flowerTimeout = null;
+        let flowerVisible = false;
+        let loadingVisible = false;
+        
+        // function captureImage() {
+        //     const captureCanvas = document.createElement('canvas');
+        //     captureCanvas.width = video.videoWidth;
+        //     captureCanvas.height = video.videoHeight;
+
+        //     const ctx = captureCanvas.getContext('2d');
+
+        //     const bgImgElem = document.getElementById('background-img');
+        //     const flowerImgElem = flower.querySelector('img');
+        //     const effectGifElem = effectGifContainer.querySelector('img'); 
+        //     const effect2GifElem = effect2GifContainer.querySelector('img'); 
+
+        //     const bgImg = new window.Image();
+        //     const flowerImg = new window.Image();
+        //     const effectImg = new window.Image(); 
+        //     const effect2Img = new window.Image(); 
+
+        //     if (bgImgElem) bgImg.src = bgImgElem.src;
+        //     if (flowerImgElem) flowerImg.src = flowerImgElem.src;
+        //     if (effectGifElem) effectImg.src = effectGifElem.src; 
+        //     if (effect2GifElem) effect2Img.src = effect2GifElem.src; 
+
+        //     let loaded = 0;
+        //     let toLoad = 0;
+
+        //     if (bgImgElem) {
+        //         toLoad++;
+        //         bgImg.onload = tryDraw;
+        //     }
+        //     if (flowerImgElem) {
+        //         toLoad++;
+        //         flowerImg.onload = tryDraw;
+        //     }
+        //     if (effectGifElem) { 
+        //         toLoad++;
+        //         effectImg.onload = tryDraw;
+        //     }
+        //     if (effect2GifElem) { 
+        //         toLoad++;
+        //         effect2Img.onload = tryDraw;
+        //     }
+        //     if (toLoad === 0) tryDraw();
+
+        //     function tryDraw() {
+        //         loaded++;
+        //         if (loaded !== toLoad) return;
+
+        //         ctx.save();
+        //         ctx.translate(captureCanvas.width, 0);
+        //         ctx.scale(-1, 1);
+        //         ctx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
+        //         ctx.restore();
+
+        //         if (bgImgElem) {
+        //             const aspect = bgImg.width / bgImg.height;
+        //             const drawHeight = captureCanvas.height;
+        //             const drawWidth = drawHeight * aspect;
+        //             const drawX = (captureCanvas.width - drawWidth) / 2;
+        //             ctx.drawImage(bgImg, drawX, 0, drawWidth, drawHeight);
+        //         }
+                
+        //         // Drawing parameters based on the containers' CSS size (30vw/30vh)
+        //         const flowerDrawWidth = captureCanvas.width * 0.3;
+        //         const flowerDrawHeight = captureCanvas.height * 0.3;
+        //         const flowerDrawX = (captureCanvas.width - flowerDrawWidth) / 2;
+        //         const flowerDrawY = captureCanvas.height * 0.8 - flowerDrawHeight / 2;
+                
+        //         const effectDrawWidth = captureCanvas.width * 0.3; 
+        //         const effectDrawHeight = captureCanvas.height * 0.3; 
+        //         const effectDrawX = (captureCanvas.width - effectDrawWidth) / 2;
+        //         const effectDrawY = captureCanvas.height * 0.8 - effectDrawHeight / 2;
+
+
+        //         // Draw Effect 2 (Deepest layer)
+        //         if (effect2GifElem) {
+        //             ctx.drawImage(effect2Img, effectDrawX, effectDrawY, effectDrawWidth, effectDrawHeight);
+        //         }
+
+        //         // Draw Effect 1 (Middle layer)
+        //         if (effectGifElem) {
+        //             ctx.drawImage(effectImg, effectDrawX, effectDrawY, effectDrawWidth, effectDrawHeight);
+        //         }
+
+
+        //         // Draw Flower (Top layer)
+        //         if (flowerImgElem) {
+        //             // Note: Flower image width/height uses 20vw for font-size, 
+        //             // but we'll use 30vw based on the image container's intended display size for consistency
+        //             ctx.drawImage(flowerImg, flowerDrawX, flowerDrawY, flowerDrawWidth, flowerDrawHeight);
+        //         }
+
+        //         const dataURL = captureCanvas.toDataURL('image/png');
+        //         const downloadLink = document.createElement('a');
+        //         downloadLink.href = dataURL;
+        //         downloadLink.download = 'hand-flower-capture.png';
+        //         document.body.appendChild(downloadLink);
+        //         downloadLink.click();
+        //         document.body.removeChild(downloadLink);
+
+        //         const carousel = document.getElementById('carousel');
+        //         const img = document.createElement('img');
+        //         img.src = dataURL;
+        //         img.alt = 'Captured flower';
+        //         img.title = 'Click to view full size';
+        //         img.onclick = () => window.open(dataURL, '_blank');
+        //         carousel.prepend(img);
+        //     }
+        // }
+
+        function randomFlower() {
+            return flowerList[Math.floor(Math.random() * flowerList.length)];
+        }
+
+        /* --- Flower Logic to hide flower and related elements --- */
+        function hideFlower() {
+            if (flowerTimeout) clearTimeout(flowerTimeout);
+            flower.style.display = 'none';
+            flower.classList.remove('pulse');
+            meaningBanner.style.display = 'none';
+            effect2GifContainer.style.display = 'none';
+            flowerVisible = false;
+        }
+
+        /* --- Flower Logic to reset timer --- */
+        function resetFlowerTimer() {
+            if (flowerTimeout) {
+                clearTimeout(flowerTimeout);
+            }
+            // Set the new timeout for 5 seconds of inactivity
+            flowerTimeout = setTimeout(hideFlower, 5000);
+        }
+
+        /* --- Main Logic for showing flower --- */
+        function showFlower() {
+            if (flowerVisible) {
+                // If flower is already visible, just reset the timer.
+                resetFlowerTimer();
+                return;
+            }
+            
+            if (loadingVisible) return; // Prevent new flower while loading
+
+            loadingVisible = true;
+            raiseHandBanner.style.display = 'none';
+
+            // 1. T=0: Fade-in Loading GIF
+            loadingContainer.style.display = 'block';
+            loadingContainer.style.opacity = '1'; 
+
+            // 2. Wait 3 seconds (showing GIF)
+            setTimeout(() => {
+                
+                // Fade out Loading GIF (T=3s)
+                loadingContainer.style.opacity = '0';
+                
+                setTimeout(() => { loadingContainer.style.display = 'none'; }, 500);
+
+                // 3. Wait 1 second (gap) BEFORE popping up flower (T=4s)
+                setTimeout(() => {
+
+                    const flowerSrc = randomFlower();
+
+                    // Using 100% size inside container for proper scaling
+                    const flowerImg =
+                        `<img src="${flowerSrc}" style="width:20vw;height:20vw; object-fit:contain;" alt="flower">`;
+
+                    const meaningImg =
+                        `<img src="${flowerSrc.replace('.png', '_meaning.png')}"
+                style="position:absolute;left:75%;top:50%;
+                transform:translate(-50%, -50%);
+                width:30vw;height:30vw;object-fit:contain;" alt="meaning">`;
+
+                    flower.innerHTML = flowerImg;
+                    flower.style.color = '';
+                    flower.classList.add('pulse');
+                    meaningBanner.innerHTML = meaningImg;
+
+                    // 4. T=4s: Pop Up Flower, Effect 1 (Pop), AND Effect 2 (Continuous)
+                    flower.style.display = 'block';
+                    meaningBanner.style.display = 'block';
+                    
+                    // Effect 1 (One-time Pop)
+                    effectGifContainer.style.display = 'block';
+                    effectGifContainer.style.opacity = '1';
+                    effectGifContainer.classList.add('pop');
+                    
+                    // Effect 2 (Continuous)
+                    effect2GifContainer.style.display = 'block';
+
+                    loadingVisible = false;
+                    flowerVisible = true;
+
+                    // Start the 5-second inactivity timer
+                    resetFlowerTimer(); 
+
+                    // Trigger Capture
+                    setTimeout(() => captureImage(), 500);
+
+                    // Auto hide Effect 1 after 2 seconds (T=6s)
+                    setTimeout(() => {
+                        effectGifContainer.classList.remove('pop'); 
+                        effectGifContainer.style.opacity = '0'; 
+                        setTimeout(() => { effectGifContainer.style.display = 'none'; }, 200); 
+                    }, 2000); 
+
+                }, 1000); // 1 second gap
+
+            }, 3000); // 3 seconds of GIF display
+        }
+
+        function runDetection() {
+            model.detect(video).then(predictions => {
+                const handPresent =
+                    predictions.some(p => p.label === "open" && p.score > 0.9);
+
+                if (handPresent) {
+                    showFlower(); // Calls showFlower, which handles the reset logic if already visible
+                } else if (flowerVisible) {
+                    // Hand is NOT detected, but the flower IS visible.
+                    // The flower's timeout must be running; do nothing here, let the timeout handle the hide.
+                }
+
+                updateRaiseHandBanner(handPresent);
+                requestAnimationFrame(runDetection);
+            });
+        }
+        
+        // Initial setup for camera and model loading
+        navigator.mediaDevices.getUserMedia({
+            video: {
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            }
+        }).then(stream => {
+            video.srcObject = stream;
+            video.onloadedmetadata = () => {
+                video.play();
+                handTrack.load().then(lmodel => {
+                    model = lmodel;
+                    runDetection();
+                });
+            };
+        }).catch(err => {
+            alert("Please enable camera access.");
+        });
+
+        // Additional device setup (optional camera selection logic)
+        navigator.mediaDevices.enumerateDevices().then(devices => {
+            const videoDevices = devices.filter(d => d.kind === 'videoinput');
+            const desiredLabelPart = "USB Camera";
+            const match = videoDevices.find(d => d.label && d.label.includes(desiredLabelPart));
+            const selected = match ? match.deviceId : (videoDevices[0]?.deviceId);
+
+            return navigator.mediaDevices.getUserMedia({
+                video: {
+                    deviceId: { exact: selected },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
+            });
+        }).then(stream => {
+            if(stream) {
+                video.srcObject = stream;
+                video.onloadedmetadata = () => {
+                    video.play();
+                    handTrack.load().then(lmodel => {
+                        model = lmodel;
+                        runDetection();
+                    });
+                };
+            }
+        }).catch(err => {});
+
+    </script>
+
+</body>
+
+</html>
